@@ -1,3 +1,9 @@
+NCL Nexus
+=========
+
+This repo is used as a reference to a nexus that can actually be built up to date (2021/10/18)
+Changes to Nexus are made in a different repo
+
 Nexus
 =====
 
