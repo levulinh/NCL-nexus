@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package nexus;
+
+message RectProto {
+  uint32 left = 1;
+  uint32 top = 2;
+  uint32 right = 3;
+  uint32 bottom = 4;
+}
+
+message ImageProto {
+  enum ImageFormat {
+    JPEG = 0;
+    PNG = 1;
+    GIF = 2;
+  }
+  bytes data = 1;
+  ImageFormat format = 2;
+  bool color = 3;
+
+  // This is a hack. Provide the filename to the image instead of transfering
+  // the real bytes. Hopefully this should save a lot of bandwidth so that a
+  // single frontend server could handle all requests, thus we don't need to
+  // deal with the problem of imbalanced load at backends.
+  string hack_filename = 4;
+}
+
+enum DataType {
+  DT_UNKNOWN = 0; 
+  DT_BOOL = 1;
+  DT_INT8 = 2;
+  DT_UINT8 = 3;
+  DT_INT32 = 4;
+  DT_UINT32 = 5;
+  DT_FLOAT = 6;
+  DT_DOUBLE = 7;
+  DT_STRING = 8;
+  DT_TENSOR = 50;
+  DT_IMAGE = 51;
+  DT_RECT = 52;
+}
+
+message TensorProto {
+  // Shape of tensor
+  repeated uint32 shape = 1;
+  // Data type can only be int8, int32, float, double, or string
+  DataType data_type = 2; 
+  // Exact ONE of the following fields must be present 
+  repeated bool bools = 10;      // bool tensor
+  repeated int32 ints = 11;      // int tensor
+  repeated float floats = 12;    // float tensor
+  repeated double doubles = 13;  // double tensor
+  repeated bytes strings = 14;   // string tensor
+}
+
+message ValueProto {
+  // name of value
+  string name = 1;
+  DataType data_type = 2;
+  
+  // Exact ONE of the following fields must be present.
+  bool b = 10;             // bool
+  int32 i = 11;            // int
+  float f = 13;            // float
+  double d = 14;           // double
+  bytes s = 15;            // string
+  
+  TensorProto tensor = 20; // tensor
+  ImageProto image = 21;   // image
+  RectProto rect = 22;     // bbox
+}
+
+message RecordProto {
+  repeated ValueProto named_value = 1;
+}
+
+message RequestProto {
+  // User ID
+  uint32 user_id = 1;
+  // Request ID
+  uint32 req_id = 2;
+  // Input
+  ValueProto input = 3;
+}
+
+message ReplyProto {
+  // User ID
+  uint32 user_id = 1;
+  // Request ID
+  uint32 req_id = 2;
+  // status
+  int32 status = 3;
+  // Error message
+  string error_message = 4;
+  // Output
+  repeated RecordProto output = 5;
+  // Latency
+  uint64 latency_us = 100;
+  // Breakdown latency for each query
+  repeated QueryLatency query_latency = 101;
+}
+
+message ModelSession {
+  // Framework
+  string framework = 1;
+  // Model name
+  string model_name = 2;
+  // Model version
+  uint32 version = 3;
+  // Latency SLA in milliseconds
+  uint32 latency_sla = 4;
+  // Specify image height and width for models whose input are resizable,
+  // otherwise ignored
+  uint32 image_height = 10;
+  uint32 image_width = 11;
+}
+
+message QueryProto {
+  // Query ID
+  uint64 query_id = 1;
+  // Model session ID
+  string model_session_id = 2;
+  // Input of query
+  ValueProto input = 3;
+  // Include top k records
+  uint32 topk = 10;
+  // Cropped windows in the image
+  repeated RectProto window = 11;
+  // Output fields
+  repeated string output_field = 12;
+  // Threshold for confidence, default is 0
+  repeated ValueProto filter = 13;
+  // Latency slack in milliseconds
+  int32 slack_ms = 40;
+  // Show breakdown latency in the result
+  bool debug = 100;
+}
+
+message QueryResultProto {
+  // Query ID
+  uint64 query_id = 1;
+  // Model session ID
+  string model_session_id = 2;
+  // status
+  int32 status = 3;
+  // Error message
+  string error_message = 4;
+  // Output
+  repeated RecordProto output = 5;
+  // Latency
+  uint64 latency_us = 20;
+  uint64 queuing_us = 21;
+
+  bool use_backup = 22;
+}
+
+message QueryLatency {
+  // Query ID
+  uint64 query_id = 1;
+  // Model session ID
+  string model_session_id = 2;
+  // Timestamp of sending query, relative to the time that receives user request
+  uint64 frontend_send_timestamp_us = 3;
+  // Timestamp of receiving query result, relative to the time that receives
+  // user request
+  uint64 frontend_recv_timestamp_us = 4;
+  // Backend processing latency
+  uint64 backend_latency_us = 5;
+  // Backend queuing latency
+  uint64 backend_queuing_us = 6;
+
+  bool use_backup = 7;
+}

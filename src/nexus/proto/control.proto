@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+package nexus;
+
+import "nnquery.proto";
+
+service SchedulerCtrl {
+  rpc Register(RegisterRequest) returns (RegisterReply) {}
+  rpc Unregister(UnregisterRequest) returns (RpcReply) {}
+  rpc LoadModel(LoadModelRequest) returns (LoadModelReply) {}
+  rpc ReportWorkload(WorkloadStatsProto) returns (RpcReply) {}
+  rpc KeepAlive(KeepAliveRequest) returns (RpcReply) {}
+  rpc ComplexQuerySetup(ComplexQuerySetupRequest) returns (RpcReply) {}
+  rpc ComplexQueryAddEdge(ComplexQueryAddEdgeRequest) returns (RpcReply) {}
+}
+
+service FrontendCtrl {
+  rpc UpdateModelRoutes(ModelRouteUpdates) returns (RpcReply) {}
+  rpc CheckAlive(CheckAliveRequest) returns (RpcReply) {}
+}
+
+service BackendCtrl {
+  rpc UpdateModelTable(ModelTableConfig) returns (RpcReply) {}
+  rpc CheckAlive(CheckAliveRequest) returns (RpcReply) {}
+  rpc CurrentUtilization(UtilizationRequest) returns (UtilizationReply) {}
+}
+
+enum NodeType {
+  FRONTEND_NODE = 0;
+  BACKEND_NODE = 1;
+}
+
+enum CtrlStatus {
+  CTRL_OK = 0;
+  
+  // User facing error code
+  // Service unavailable
+  SERVICE_UNAVAILABLE = 1;
+  // Model not found
+  MODEL_NOT_FOUND = 2;
+  // No available backends
+  NOT_ENOUGH_BACKENDS = 3;
+  // Model session not loaded
+  MODEL_SESSION_NOT_LOADED = 4;
+  // Invalid query
+  MODEL_TYPE_NOT_SUPPORT = 5;
+  // Input type incorrect
+  INPUT_TYPE_INCORRECT = 6;
+  // Latency SLA timeout
+  TIMEOUT = 7;
+
+  // Internal control error code
+  CTRL_SERVER_UNREACHABLE = 100;
+  CTRL_SERVER_NOT_REGISTERED = 101;
+  CTRL_MODEL_NOT_SUPPORTED = 102;
+  CTRL_ROUTE_TABLE_VERSION_MISMATCH = 103;
+
+  CTRL_BACKEND_NODE_ID_CONFLICT = 200;
+
+  CTRL_FRONTEND_NODE_ID_CONFLICT = 300;
+  CTRL_INVALID_LOAD_MODEL_REQUEST = 301;
+}
+
+message RpcReply {
+  CtrlStatus status = 1;
+}
+
+message RegisterRequest {
+  NodeType node_type = 1;
+  uint32 node_id = 2;
+  string server_port = 3;
+  string rpc_port = 4;
+  string gpu_device_name = 10;
+  string gpu_uuid = 12;
+  uint64 gpu_available_memory = 11;
+}
+
+message RegisterReply {
+  // reply whether the rpc succeeds
+  CtrlStatus status = 1;
+  // beacon interval in sec
+  int32 beacon_interval_sec = 2;
+}
+
+message UnregisterRequest {
+  NodeType node_type = 1;
+  uint32 node_id = 2;
+}
+
+message CheckAliveRequest {
+  NodeType node_type = 1;
+  uint32 node_id = 2;
+}
+
+message BackendInfo {
+  uint32 node_id = 1;
+  string ip = 2;
+  string server_port = 3;
+  string rpc_port = 4;
+}
+
+message ModelRouteProto {
+  message BackendRate {
+    BackendInfo info = 1;
+    double throughput = 2;
+  }
+  string model_session_id = 1;
+  repeated BackendRate backend_rate = 2;
+}
+
+message ModelRouteUpdates {
+  repeated ModelRouteProto model_route = 1;
+}
+
+message LoadModelRequest {
+  uint32 node_id = 1;
+  ModelSession model_session = 2;
+  double estimate_workload = 3;
+  //uint32 num_gpus = 4;
+  string cq_id = 5;
+}
+
+message LoadModelReply {
+  CtrlStatus status = 1;
+  ModelRouteProto model_route = 2;
+}
+
+message ModelInstanceConfig {
+  repeated ModelSession model_session = 1;
+  uint32 batch = 2;
+  uint32 max_batch = 3;
+  uint64 memory_usage = 4;
+  bool backup = 5;
+
+  // The following fields are used for prefix batching and split batching.
+  // Model segment is from start_index (inclusive) to end_index (exclusive).
+  // input_name and input_shape are needed when start_index is not 0.
+  int32 start_index = 10;
+  int32 end_index = 11;
+  string input_name = 12;
+  repeated int32 input_shape = 13;
+
+  repeated BackendInfo backup_backend = 40;
+}
+
+message ModelTableConfig {
+  repeated ModelInstanceConfig model_instance_config = 1;
+  double duty_cycle_us = 2;
+}
+
+message ModelStatsProto {
+  // Model session ID
+  string model_session_id = 1;
+  // Requests every second during last period
+  repeated uint64 num_requests = 2;
+}
+
+message WorkloadStatsProto {
+  uint32 node_id = 1;
+  repeated ModelStatsProto model_stats = 2;
+}
+
+message KeepAliveRequest {
+  NodeType node_type = 1;
+  uint32 node_id = 2;
+}
+
+message UtilizationRequest {
+  uint32 node_id = 1;
+}
+
+message UtilizationReply {
+  uint32 node_id = 1;
+  double utilization = 2;
+  int32 valid_ms = 3;
+}
+
+message ComplexQuerySetupRequest {
+  string cq_id = 1;
+  uint32 slo_us = 2;
+  uint32 step_us = 3;
+}
+
+message ComplexQueryAddEdgeRequest {
+  string cq_id = 1;
+  ModelSession source = 2;
+  ModelSession target = 3;
+}
