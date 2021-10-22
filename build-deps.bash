@@ -11,6 +11,7 @@ mkdir -p "$INSTALL_DIR"
 
 cd "$SRC_DIR"
 
+python3.7 -m pip install 'numpy<1.19.0'
 
 ###### yaml-cpp 0.6.3 ######
 # ref: https://github.com/jbeder/yaml-cpp/tree/yaml-cpp-0.6.3
@@ -98,13 +99,13 @@ if [ ! -d "$INSTALL_DIR/gtest" ]; then
     cd ../..
 fi
 
-###### protobuf 3.8.0 (need to sync with TensorFlow) ######
+###### protobuf 3.9.2 (need to sync with TensorFlow) ######
 # TensorFlow dependency: https://github.com/tensorflow/tensorflow/blob/906f537c0be010929a0bda3c7d061de9d3d8d5b0/tensorflow/workspace.bzl#L472
 # ref: https://github.com/protocolbuffers/protobuf/blob/master/src/README.md
 if [ ! -d "$INSTALL_DIR/protobuf" ]; then
-    wget -N https://github.com/protocolbuffers/protobuf/archive/v3.8.0.tar.gz -O protobuf-3.8.0.tar.gz
-    tar xf protobuf-3.8.0.tar.gz
-    cd protobuf-3.8.0/
+    wget -N https://github.com/protocolbuffers/protobuf/archive/v3.9.2.tar.gz -O protobuf-3.9.2.tar.gz
+    tar xf protobuf-3.9.2.tar.gz
+    cd protobuf-3.9.2/
     ./autogen.sh
     ./configure --prefix="$INSTALL_DIR/protobuf"
     make -j$(nproc)
@@ -127,13 +128,13 @@ if [ ! -d "$INSTALL_DIR/grpc" ]; then
     cd ..
 fi
 
-###### bazel 1.2.1 ######
+###### bazel 3.1.0 ######
 if [ ! -d "$INSTALL_DIR/bazel" ]; then
-    wget -N https://github.com/bazelbuild/bazel/releases/download/1.2.1/bazel-1.2.1-linux-x86_64 -O bazel-1.2.1-linux-x86_64
-    chmod +x bazel-1.2.1-linux-x86_64
+    wget -N https://github.com/bazelbuild/bazel/releases/download/3.1.0/bazel-3.1.0-linux-x86_64 -O bazel-3.1.0-linux-x86_64
+    chmod +x bazel-3.1.0-linux-x86_64
     mkdir -p "$INSTALL_DIR/bazel"
-    mv bazel-1.2.1-linux-x86_64 "$INSTALL_DIR/bazel/"
-    ln -sf bazel-1.2.1-linux-x86_64 "$INSTALL_DIR/bazel/bazel"
+    mv bazel-3.1.0-linux-x86_64 "$INSTALL_DIR/bazel/"
+    ln -sf bazel-3.1.0-linux-x86_64 "$INSTALL_DIR/bazel/bazel"
 fi
 
 exit 0
