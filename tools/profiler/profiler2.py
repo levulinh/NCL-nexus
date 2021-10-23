@@ -74,7 +74,7 @@ def find_max_batch(framework, model_name, gpus):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         out, err = proc.communicate()
-        print('OUT: ', out)
+        print('err: ', err)
         if 'out of memory' in err or 'out of memory' in out:
             print('Batch size %s: out of memory' % right)
             out_of_memory = True
